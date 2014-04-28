@@ -10,7 +10,7 @@ import java.net.ServerSocket;
  * @author Matthew McGuire
  * @version 0.1 27 April 2014
  */
-public class DataServer {
+public class DataServer extends Thread {
 
     /**
      * Port to listen for connection to DataServer from ApplicationServer
