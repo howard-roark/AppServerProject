@@ -1,6 +1,7 @@
 package com.project.two;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -11,23 +12,23 @@ import java.net.Socket;
  * @author Matthew McGuire
  * @version 0.1 27 April 2014
  */
-public class DataServer extends Thread {
+public class DataServer {
     /**
      * Port to listen for connection to DataServer from ApplicationServer
      */
-    private final int PORT = 2233;
+    private static final int DATA_SERVER_PORT = 2233;
 
-    protected DataServer(BufferedReader in, PrintWriter out, Socket socket) {
+    public static void main(String[] args) {
         try (
-                ServerSocket dataListener = new ServerSocket(PORT);
+                ServerSocket dataServerListener = new ServerSocket(DATA_SERVER_PORT);
         ) {
-            socket = dataListener.accept();
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String raw = in.readLine();
-            String result = determineAction(raw);
-            out = new PrintWriter(socket.getOutputStream(), true);
-        } catch (IOException e) {
-            System.err.println("Error when initializing dataListener: ");
+            Socket appServerComm = dataServerListener.accept();
+        } catch (IOException ioe) {
+            System.err.println("Problem creating data server listening socket");
+            ioe.printStackTrace();
+            System.exit(1);
+        } catch (Exception e) {
+            System.err.println("Unknown error creating data server listening socket");
             e.printStackTrace();
             System.exit(1);
         }
@@ -36,12 +37,14 @@ public class DataServer extends Thread {
     private String determineAction(String raw) {
         String result = "NOT TRANSLATED";
         String[] requestByParts = raw.split("^");
-        if (requestByParts[0].equals("B)")) {
+        String format = requestByParts[0];
+        String[] idAndFormat = format.split("@");
+        if (idAndFormat[1].equals("B")) {
             result = rawToBin(requestByParts[1]);
         } else if (requestByParts[0].equals("H")) {
             result = rawToHex(requestByParts[1]);
         }
-        return result;
+        return idAndFormat[0] + "@" + result;
     }
 
     /**
