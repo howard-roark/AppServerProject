@@ -1,38 +1,38 @@
 package com.project.two;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Queue;
-import java.util.concurrent.PriorityBlockingQueue;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Matthew McGuire
- * @version 0.1 27 April 2014
+ * @version 1.0 27 April 2014
  */
-public class ApplicationServer extends Thread {
-    private static final int APP_PORT = 2222;
-    private static final int DATA_SERVER_PORT = 2233;
-    protected static Queue<ClientThread> clientThreads = new PriorityBlockingQueue<>();
+public class ApplicationServer {
+    private static final int PORT = 2222;
+    protected static String[] timeSlots = new String[20];
+    protected static Map<String, String> bookedAppointments = new HashMap<>();
 
     public static void main(String[] args) {
+        buildTimeSlots();
+        buildAppointments();
         try (
-                ServerSocket appServer = new ServerSocket(APP_PORT);
-                Socket dataServComm = new Socket(InetAddress.getLocalHost(), DATA_SERVER_PORT);
-                BufferedReader inFromData = new BufferedReader(new InputStreamReader(dataServComm.getInputStream()));
+                ServerSocket appServer = new ServerSocket(PORT);
         ) {
-            new ApplicationServer().start();
-            String response = "";
             while (true) {
-                Socket clientSocket = appServer.accept();
-                clientThreads.add(new ClientThread(clientSocket, dataServComm));
-                response = inFromData.readLine();
-                if (!response.equals("")) {
-                    //TODO loop through queue to send to appropriate client by ID somehow. Need a printwriter to send need a printwriter to send response to client.
+                try {
+                    Socket clientSocket = appServer.accept();
+                    new ClientThread(clientSocket, timeSlots, bookedAppointments).start();
+                } catch (IOException ioe) {
+                    System.err.println("Problem sending response to client thread");
+                    ioe.printStackTrace();
+                    System.exit(1);
+                } catch (Exception e) {
+                    System.err.println("Unknown error sending response to client thread");
+                    e.printStackTrace();
+                    System.exit(1);
                 }
             }
         } catch (IOException ioe) {
@@ -46,28 +46,22 @@ public class ApplicationServer extends Thread {
         }
     }
 
-    public void run() {
-        String request = "";
-        while (true) {
-            for (ClientThread thread : clientThreads) {
-                request = thread.getRequest();
-                if (!request.equals("")) {
-                    try (
-                            Socket dataSocket = thread.getSocket();
-                            PrintWriter outClient = new PrintWriter(dataSocket.getOutputStream(), true);
-                    ) {
-                        outClient.print(request);
-                    } catch (IOException ioe) {
-                        System.err.println("Problem getting client socket from client thread");
-                        ioe.printStackTrace();
-                        System.exit(1);
-                    } catch (Exception e) {
-                        System.err.println("Unknown problem sending requests to data server");
-                        e.printStackTrace();
-                        System.exit(1);
-                    }
-                }
-            }
+    private static void buildTimeSlots() {
+        for (int i = 1, j = 0; i < 13; i++, j++) {
+            timeSlots[j] = i + "/01/1981";
+        }
+    }
+
+    private static void buildAppointments() {
+        bookedAppointments.put("Matt", "");
+        bookedAppointments.put("Mark", "");
+        bookedAppointments.put("Luke", "");
+        bookedAppointments.put("John", "");
+        int i = 1;
+        String date = i + "/15/1981";
+        for (String key : bookedAppointments.keySet()) {
+            bookedAppointments.put(key, date);
+            i++;
         }
     }
 }

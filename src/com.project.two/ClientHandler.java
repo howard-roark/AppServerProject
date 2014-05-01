@@ -3,8 +3,7 @@ package com.project.two;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetAddress;
+import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
@@ -13,32 +12,31 @@ import java.net.UnknownHostException;
  * @version 0.1 27 April 2014
  */
 public class ClientHandler {
+    private static String choice = "";
     /**
      * Port in which the ApplicationServer is listening for connections
      */
-    private static final int APPLICATION_SERVER_PORT = 2222;
-    private static String clientRequest = "";
-    private static int clientId = 0;
-
+    private static final int PORT = 2222;
 
     public static void main(String[] args) {
-
         try (
                 BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         ) {
-            while (!reader.readLine().equals("EXIT")) {
-                System.out.println("Client Number -  : Please Enter the string you would like " +
-                        "translated.");
-                String clientString = reader.readLine();
-                System.out.println("\nPlease enter \'B\' for a Binary translation of \'H\' for a Hexadecimal " +
-                        "translation.");
-                String format = reader.readLine();
-                while ((!format.equals("B")) && (!format.equals("H"))) {
-                    System.out.println("Please enter \'B\' or \'H\'");
-                    format = reader.readLine();
-                }
-                clientRequest = clientId + "@" + format + "^" + clientString;
-                clientId++;
+            System.out.println("Welcome to Dr. Dog's Veterinary Clinic State of the Art Scheduling App!");
+            System.out.println("\tPlease choose from the following options:");
+            System.out.println("\t\t0: See Available Time Slots\n\t\t1: Confirm your chosen time slot\n\t\t2: Exit");
+            choice = reader.readLine();
+            while ((!choice.equals("0")) && (!choice.equals("1")) && (!choice.equals("2"))) {
+                System.out.println("Please choose a valid option: 0, 1 or 2");
+                choice = reader.readLine();
+            }
+            if (choice.equals("0")) {
+                //TODO Display available slots in array,need to enter name and choose a time
+            } else if (choice.equals("1")) {
+                //TODO Look up appointment in map based on client Name, will need to prompt for a name
+            } else {
+                System.out.println("Thank you, come again!");
+                System.exit(0);
             }
         } catch (IOException ioe) {
             System.err.println("Problem creating BufferedReader for reading input from command line");
@@ -51,16 +49,25 @@ public class ClientHandler {
         }
 
         try (
-                Socket socket = new Socket(InetAddress.getLocalHost(), APPLICATION_SERVER_PORT);
-                PrintWriter outClient = new PrintWriter(socket.getOutputStream(), true);
+                Socket socket = new Socket("localhost", PORT);
+                PrintStream outClient = new PrintStream(socket.getOutputStream());
                 BufferedReader inClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         ) {
-            outClient.println(clientRequest);
-            String response = "";
-            while (response.equals("")) {
+            outClient.print(choice);
+            String response = null;
+            while (response == null) {
                 response = inClient.readLine();
-                System.out.println(response);
-                response = "";
+                if (choice.equals("0")) {
+                    while (response != null) {
+                        System.out.println(response);
+                    }
+                } else if (choice.equals("1") && (response.equals("Please enter your name: ") ||
+                        response.equals("Invalid Entry.  Please re-Type your Name: "))) {
+                    if (response.equals("Invalid Entry.  Please re-Type your Name: ")) {
+
+                    }
+                }
+                response = null;
             }
         } catch (UnknownHostException ue) {
             System.err.println("Problem connecting to localhost, check if Apache is running");
