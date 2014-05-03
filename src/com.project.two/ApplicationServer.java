@@ -14,17 +14,17 @@ public class ApplicationServer {
     private static final int PORT = 2222;
     protected static String[] timeSlots = new String[20];
     protected static Map<String, String> bookedAppointments = new HashMap<>();
+    private static ServerSocket appServer = null;
 
     public static void main(String[] args) {
         buildTimeSlots();
         buildAppointments();
-        try (
-                ServerSocket appServer = new ServerSocket(PORT);
-        ) {
+        try {
+            appServer = new ServerSocket(PORT);
             while (true) {
                 try {
                     Socket clientSocket = appServer.accept();
-                    new ClientThread(clientSocket, timeSlots, bookedAppointments).start();
+                    new Thread(new ClientThread(clientSocket, timeSlots, bookedAppointments)).start();
                 } catch (IOException ioe) {
                     System.err.println("Problem sending response to client thread");
                     ioe.printStackTrace();
@@ -43,6 +43,19 @@ public class ApplicationServer {
             System.err.println("Unknown error starting app server");
             e.printStackTrace();
             System.exit(1);
+        } finally {
+            try {
+                System.out.println("Closing ServerSocket...");
+                appServer.close();
+            } catch (IOException ioe) {
+                System.err.println("Problem closing server socket");
+                ioe.printStackTrace();
+                System.exit(1);
+            } catch (Exception e) {
+                System.err.println("Unknown problem closing server socket");
+                e.printStackTrace();
+                System.exit(1);
+            }
         }
     }
 

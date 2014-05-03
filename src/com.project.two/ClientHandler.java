@@ -18,10 +18,13 @@ public class ClientHandler {
      */
     private static final int PORT = 2222;
 
+    private static BufferedReader reader = null;
+    private static BufferedReader inFromServer = null;
+    private static Socket clientSocket = null;
+
     public static void main(String[] args) {
-        try (
-                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        ) {
+        try {
+            reader = new BufferedReader(new InputStreamReader(System.in));
             System.out.println("Welcome to Dr. Dog's Veterinary Clinic State of the Art Scheduling App!");
             System.out.println("\tPlease choose from the following options:");
             System.out.println("\t\t0: See Available Time Slots\n\t\t1: Confirm your chosen time slot\n\t\t2: Exit");
@@ -30,8 +33,22 @@ public class ClientHandler {
                 System.out.println("Please choose a valid option: 0, 1 or 2");
                 choice = reader.readLine();
             }
+
+            try {
+                clientSocket = ClientThread.clientSocket;
+                inFromServer = new BufferedReader((new InputStreamReader(clientSocket.getInputStream())));
+            } catch (IOException ioe) {
+                System.err.println("Error getting client socket from ClientThread");
+                ioe.printStackTrace();
+                System.exit(1);
+            } catch (Exception e) {
+                System.err.println("Unknown error getting socket / inputstream");
+                e.printStackTrace();
+                System.exit(1);
+            }
+
             if (choice.equals("0")) {
-                //TODO Display available slots in array,need to enter name and choose a time
+                System.out.println(inFromServer.readLine());
             } else if (choice.equals("1")) {
                 //TODO Look up appointment in map based on client Name, will need to prompt for a name
             } else {
@@ -46,6 +63,18 @@ public class ClientHandler {
             System.err.println("Unknown error creating request");
             e.printStackTrace();
             System.exit(1);
+        } finally {
+            try {
+                reader.close();
+            } catch (IOException ioe) {
+                System.err.println("Problem closing reader for client input");
+                ioe.printStackTrace();
+                System.exit(1);
+            } catch (Exception e) {
+                System.err.println("Unknown error closing reader for client input");
+                e.printStackTrace();
+                System.exit(1);
+            }
         }
 
         try (
