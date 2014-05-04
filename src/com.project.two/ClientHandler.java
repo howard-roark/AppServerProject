@@ -46,31 +46,27 @@ public class ClientHandler {
 
         try {
             socket = new Socket("localhost", PORT);
-            outClient = new PrintStream(socket.getOutputStream());
+            socket.setKeepAlive(true);
+            outClient = new PrintStream(socket.getOutputStream(), true);
             inClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
             outClient.println(choice);
-            String response = null;
+            String response;
             String slot;
-            while ((response = inClient.readLine()) != null) {
-                response = inClient.readLine();
-                if (choice.equals("0")) {
-                    while (response != null && !response.contains("null")) {
-                        System.out.println(response);
-                        response = inClient.readLine();
-                    }
-                    System.out.println("Which time slot would you like to reserve?");
-                    slot = reader.readLine();
-                    outClient.println(slot);
-                } else if (choice.equals("1") && (response.equals("Please enter your name: ") ||
-                        response.equals("Invalid Entry.  Please re-Type your Name: "))) {
-                    if (response.equals("Invalid Entry.  Please re-Type your Name: ")) {
 
-                    }
+            if (choice.equals("0")) {
+                while ((response = inClient.readLine()) != null) {
+                    System.out.println(response);
                 }
+                System.out.println("Which time slot would you like to reserve?");
+                slot = reader.readLine();
+                outClient.println(slot);
+
+            } else if (choice.equals("1")) {
+
             }
         } catch (UnknownHostException ue) {
-            System.err.println("Problem connecting to localhost, check if Apache is running");
+            System.err.println("Problem connecting to localhost.");
             ue.printStackTrace();
             System.exit(1);
         } catch (IOException ioe) {

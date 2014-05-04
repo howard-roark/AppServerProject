@@ -6,7 +6,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,7 +17,7 @@ import java.util.Map;
  */
 public class ApplicationServer {
     private static final int PORT = 2222;
-    protected static String[] timeSlots = new String[20];
+    protected static List<String> timeSlots = new ArrayList<>();
     protected static Map<String, String> bookedAppointments = new HashMap<>();
     private static ServerSocket appServer = null;
     private static Socket clientSocket = null;
@@ -56,7 +58,7 @@ public class ApplicationServer {
 
     private static void buildTimeSlots() {
         for (int i = 1, j = 0; i < 13; i++, j++) {
-            timeSlots[j] = i + "/01/1981";
+            timeSlots.add(i + "/01/1981");
         }
     }
 
@@ -77,12 +79,12 @@ public class ApplicationServer {
 class ClientThread extends Thread {
     protected static Socket clientSocket = null;
     private String request;
-    private String[] timeSlots = null;
+    private List<String> timeSlots;
     private Map<String, String> appointments = null;
     private BufferedReader in = null;
     private PrintWriter out = null;
 
-    public ClientThread(Socket appServerConnection, String[] timeSlots, Map<String, String> appointments) {
+    public ClientThread(Socket appServerConnection, List<String> timeSlots, Map<String, String> appointments) {
         try {
             this.clientSocket = appServerConnection;
             synchronized (this) {
@@ -100,6 +102,7 @@ class ClientThread extends Thread {
     @Override
     public void run() {
         String slotChoice;
+        String customerName;
         try {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             out = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -115,6 +118,23 @@ class ClientThread extends Thread {
                     }
                 }
                 out.println(timeSlot);
+                out.println("Please choose the time slot that works best for you: ");
+                int slotChoiceIndex = -1;
+                while ((slotChoice = in.readLine()) != null) {
+                    synchronized (this) {
+                        slotChoiceIndex = Integer.parseInt(slotChoice);
+                        System.out.println("Client chose: " + slotChoice);
+
+                        if ((timeSlots.get(slotChoiceIndex) != null) && (!timeSlots.get(slotChoiceIndex).contains("null"))) {
+                            out.print("Please enter your name: ");
+                            customerName = in.readLine();
+                            appointments.put(customerName, timeSlots.get(slotChoiceIndex));
+                            timeSlots.remove(slotChoiceIndex);
+                        } else {
+                            out.println("Invalid Entry, System shutting down");
+                        }
+                    }
+                }
 
             } else if (choice.equals("1")) {
                 System.out.println("Looking up current appointments...");
