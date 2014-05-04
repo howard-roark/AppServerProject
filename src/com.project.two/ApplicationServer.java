@@ -25,6 +25,7 @@ public class ApplicationServer {
         buildAppointments();
         try {
             appServer = new ServerSocket(PORT);
+            System.out.println("Application Server listening...");
             while (true) {
                 clientSocket = appServer.accept();
                 new Thread(new ClientThread(clientSocket, timeSlots, bookedAppointments));
@@ -98,19 +99,23 @@ class ClientThread extends Thread {
 
     @Override
     public void run() {
+        String slotChoice;
         try {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             String choice = in.readLine();
             if (choice.equals("0")) {
                 System.out.println("Finding available time slots...");
-                String timeSlot = "";
+                String timeSlot = null;
                 synchronized (this) {
-                    for (int i = 0; i < timeSlots.length; i++) {
-                        timeSlot = timeSlot + "\n" + i + ": " + timeSlots[i];
+                    int i = 0;
+                    for (String slot : timeSlots) {
+                        timeSlot = timeSlot + "\n" + i + ": " + slot;
+                        i++;
                     }
-                    out.println(timeSlot);
                 }
+                out.println(timeSlot);
+
             } else if (choice.equals("1")) {
                 System.out.println("Looking up current appointments...");
                 out.print("Please enter your name: ");
@@ -134,9 +139,5 @@ class ClientThread extends Thread {
                 System.exit(1);
             }
         }
-    }
-
-    public String toString() {
-        return "";
     }
 }
