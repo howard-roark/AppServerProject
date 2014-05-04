@@ -5,93 +5,87 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
 /**
+ * Client handler will be used to demonstrate an actual client requesting a connection with the applications server.
+ * It will display output from the server and request the customer for a response to the appliation's dialog.
+ *
  * @author Matthew McGuire
- * @version 0.1 27 April 2014
+ * @version 1.2 27 April 2014
  */
-public class ClientHandler {
-    private static String choice = "";
-    /**
-     * Port in which the ApplicationServer is listening for connections
-     */
+public class ClientHandler implements Runnable {
     private static final int PORT = 2222;
-
     private static BufferedReader reader = null;
-    private static Socket socket = null;
     private static PrintStream outClient = null;
     private static BufferedReader inClient = null;
+    private static String toSend;
+    private static String response;
+    private static boolean closed = false;
 
+    /**
+     * Main method creates the socket that will attempt to connect with the server socket from the application server.
+     * Also creates the other resources needed to pass streams of data back and forth over the socket between the
+     * client and applcation server.
+     *
+     * @param args
+     */
     public static void main(String[] args) {
         try {
-            reader = new BufferedReader(new InputStreamReader(System.in));
-            System.out.println("Welcome to Dr. Dog's Veterinary Clinic's State of the Art Scheduling App!");
-            System.out.println("\tPlease choose from the following options:");
-            System.out.println("\t\t0: See Available Time Slots\n\t\t1: Confirm your chosen time slot\n\t\t2: Exit");
-            choice = reader.readLine();
-            while ((!choice.equals("0")) && (!choice.equals("1")) && (!choice.equals("2"))) {
-                System.out.println("Please choose a valid option: 0, 1 or 2");
-                choice = reader.readLine();
-            }
-        } catch (IOException ioe) {
-            System.err.println("Problem creating BufferedReader for reading input from command line");
-            ioe.printStackTrace();
-            System.exit(1);
-        } catch (Exception e) {
-            System.err.println("Unknown error creating request");
-            e.printStackTrace();
-            System.exit(1);
-        }
-
-        try {
-            socket = new Socket("localhost", PORT);
-            outClient = new PrintStream(socket.getOutputStream());
+            Socket socket = new Socket("localhost", PORT);
+            socket.setKeepAlive(true);
+            outClient = new PrintStream(socket.getOutputStream(), true);
             inClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            reader = new BufferedReader(new InputStreamReader(System.in));
 
-            outClient.println(choice);
-            String response = null;
-            String slot;
-            while ((response = inClient.readLine()) != null) {
-                response = inClient.readLine();
-                if (choice.equals("0")) {
-                    while (response != null && !response.contains("null")) {
-                        System.out.println(response);
-                        response = inClient.readLine();
-                    }
-                    System.out.println("Which time slot would you like to reserve?");
-                    slot = reader.readLine();
-                    outClient.println(slot);
-                } else if (choice.equals("1") && (response.equals("Please enter your name: ") ||
-                        response.equals("Invalid Entry.  Please re-Type your Name: "))) {
-                    if (response.equals("Invalid Entry.  Please re-Type your Name: ")) {
+            /*
+            Create a new thread to set up infinite loop to listen for output from the server.
+             */
+            new Thread(new ClientHandler()).start();
 
+            /*
+            Infinite loop that responds the output from the server.
+             */
+            while (true) {
+                toSend = reader.readLine();
+                if (toSend.length() != 0) {
+                    outClient.println(toSend);
+                    if ((toSend.equalsIgnoreCase("quit")) || (toSend.equals("3"))) {
+                        break;
                     }
                 }
             }
-        } catch (UnknownHostException ue) {
-            System.err.println("Problem connecting to localhost, check if Apache is running");
-            ue.printStackTrace();
-            System.exit(1);
+
+            /*
+            The customer has chosen to leave the application, close the connection.
+             */
+            closed = true;
+            outClient.close();
+            inClient.close();
+            socket.close();
+
         } catch (IOException ioe) {
-            System.err.println("Problem connecting client socket with Application Server");
             ioe.printStackTrace();
             System.exit(1);
-        } catch (Exception e) {
-            System.err.println("Unknown error creating client sockets");
-            e.printStackTrace();
-            System.exit(1);
-        } finally {
+        }
+    }
+
+    @Override
+    public void run() {
+        /*
+        If the connection is not closed continue to listen for output from the server.
+         */
+        while (!closed) {
             try {
-                socket.close();
-                outClient.close();
-                inClient.close();
+                if (inClient.ready()) {
+                    response = inClient.readLine();
+                    if (response != null && response.length() != 0) {
+                        System.out.println(response);
+                    }
+                }
             } catch (IOException ioe) {
-                System.err.println("Error closing resources");
                 ioe.printStackTrace();
                 System.exit(1);
             }
         }
-
     }
 }
