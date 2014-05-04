@@ -19,41 +19,20 @@ public class ClientHandler {
     private static final int PORT = 2222;
 
     private static BufferedReader reader = null;
-    private static BufferedReader inFromServer = null;
-    private static Socket clientSocket = null;
+    private static Socket socket = null;
+    private static PrintStream outClient = null;
+    private static BufferedReader inClient = null;
 
     public static void main(String[] args) {
         try {
             reader = new BufferedReader(new InputStreamReader(System.in));
-            System.out.println("Welcome to Dr. Dog's Veterinary Clinic State of the Art Scheduling App!");
+            System.out.println("Welcome to Dr. Dog's Veterinary Clinic's State of the Art Scheduling App!");
             System.out.println("\tPlease choose from the following options:");
             System.out.println("\t\t0: See Available Time Slots\n\t\t1: Confirm your chosen time slot\n\t\t2: Exit");
             choice = reader.readLine();
             while ((!choice.equals("0")) && (!choice.equals("1")) && (!choice.equals("2"))) {
                 System.out.println("Please choose a valid option: 0, 1 or 2");
                 choice = reader.readLine();
-            }
-
-            try {
-                clientSocket = ClientThread.clientSocket;
-                inFromServer = new BufferedReader((new InputStreamReader(clientSocket.getInputStream())));
-            } catch (IOException ioe) {
-                System.err.println("Error getting client socket from ClientThread");
-                ioe.printStackTrace();
-                System.exit(1);
-            } catch (Exception e) {
-                System.err.println("Unknown error getting socket / inputstream");
-                e.printStackTrace();
-                System.exit(1);
-            }
-
-            if (choice.equals("0")) {
-                System.out.println(inFromServer.readLine());
-            } else if (choice.equals("1")) {
-                //TODO Look up appointment in map based on client Name, will need to prompt for a name
-            } else {
-                System.out.println("Thank you, come again!");
-                System.exit(0);
             }
         } catch (IOException ioe) {
             System.err.println("Problem creating BufferedReader for reading input from command line");
@@ -77,17 +56,17 @@ public class ClientHandler {
             }
         }
 
-        try (
-                Socket socket = new Socket("localhost", PORT);
-                PrintStream outClient = new PrintStream(socket.getOutputStream());
-                BufferedReader inClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        ) {
-            outClient.print(choice);
-            String response = null;
-            while (response == null) {
+        try {
+            socket = new Socket("localhost", PORT);
+            outClient = new PrintStream(socket.getOutputStream());
+            inClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            outClient.println(choice);
+            String response;
+            while ((response = inClient.readLine()) != null) {
                 response = inClient.readLine();
                 if (choice.equals("0")) {
-                    while (response != null) {
+                    while (response != null && !response.equals("")) {
                         System.out.println(response);
                     }
                 } else if (choice.equals("1") && (response.equals("Please enter your name: ") ||
@@ -96,7 +75,6 @@ public class ClientHandler {
 
                     }
                 }
-                response = null;
             }
         } catch (UnknownHostException ue) {
             System.err.println("Problem connecting to localhost, check if Apache is running");
@@ -110,6 +88,16 @@ public class ClientHandler {
             System.err.println("Unknown error creating client sockets");
             e.printStackTrace();
             System.exit(1);
+        } finally {
+            try {
+                socket.close();
+                outClient.close();
+                inClient.close();
+            } catch (IOException ioe) {
+                System.err.println("Error closing resources");
+                ioe.printStackTrace();
+                System.exit(1);
+            }
         }
 
     }
