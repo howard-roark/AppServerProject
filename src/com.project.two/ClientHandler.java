@@ -25,7 +25,7 @@ public class ClientHandler {
 
     public static void main(String[] args) {
         try {
-            reader = new BufferedReader(new InputStreamReader(System.in));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
             System.out.println("Welcome to Dr. Dog's Veterinary Clinic's State of the Art Scheduling App!");
             System.out.println("\tPlease choose from the following options:");
             System.out.println("\t\t0: See Available Time Slots\n\t\t1: Confirm your chosen time slot\n\t\t2: Exit");
