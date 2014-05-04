@@ -30,7 +30,7 @@ public class ApplicationServer {
             System.out.println("Application Server listening...");
             while (true) {
                 clientSocket = appServer.accept();
-                new Thread(new ClientThread(clientSocket, timeSlots, bookedAppointments));
+                new ClientThread(clientSocket, timeSlots, bookedAppointments).start();
             }
         } catch (IOException ioe) {
             System.err.println("Problem starting app server socket");
@@ -77,21 +77,19 @@ public class ApplicationServer {
 }
 
 class ClientThread extends Thread {
-    protected static Socket clientSocket = null;
+    private Socket clientSocket = null;
     private String request;
     private List<String> timeSlots;
     private Map<String, String> appointments = null;
     private BufferedReader in = null;
     private PrintWriter out = null;
+    private String clientName;
 
     public ClientThread(Socket appServerConnection, List<String> timeSlots, Map<String, String> appointments) {
         try {
             this.clientSocket = appServerConnection;
-            synchronized (this) {
-                this.timeSlots = timeSlots;
-                this.appointments = appointments;
-            }
-            this.start();
+            this.timeSlots = timeSlots;
+            this.appointments = appointments;
         } catch (Exception e) {
             System.err.println("Problem creating resources for thread");
             e.printStackTrace();
