@@ -55,13 +55,16 @@ public class ClientHandler {
             String slot;
 
             if (choice.equals("0")) {
-                while ((response = inClient.readLine()) != null) {
-                    System.out.println(response);
+                while (true) {
+                    while ((response = inClient.readLine()) != null) {
+                        System.out.println(response);
+                    }
+                    System.out.println("Which time slot would you like to reserve?");
+                    slot = reader.readLine();
+                    System.out.print(slot);
+                    outClient.println(slot);
+                    System.out.println("Slot chosen: " + slot);
                 }
-                System.out.println("Which time slot would you like to reserve?");
-                slot = reader.readLine();
-                outClient.println(slot);
-
             } else if (choice.equals("1")) {
 
             }

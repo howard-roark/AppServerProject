@@ -120,18 +120,20 @@ class ClientThread extends Thread {
                 out.println(timeSlot);
                 out.println("Please choose the time slot that works best for you: ");
                 int slotChoiceIndex = -1;
-                while ((slotChoice = in.readLine()) != null) {
-                    synchronized (this) {
-                        slotChoiceIndex = Integer.parseInt(slotChoice);
-                        System.out.println("Client chose: " + slotChoice);
+                while (true) {
+                    while ((slotChoice = in.readLine()) != null) {
+                        synchronized (this) {
+                            slotChoiceIndex = Integer.parseInt(slotChoice);
+                            System.out.println("Client chose: " + slotChoice);
 
-                        if ((timeSlots.get(slotChoiceIndex) != null) && (!timeSlots.get(slotChoiceIndex).contains("null"))) {
-                            out.print("Please enter your name: ");
-                            customerName = in.readLine();
-                            appointments.put(customerName, timeSlots.get(slotChoiceIndex));
-                            timeSlots.remove(slotChoiceIndex);
-                        } else {
-                            out.println("Invalid Entry, System shutting down");
+                            if ((timeSlots.get(slotChoiceIndex) != null) && (!timeSlots.get(slotChoiceIndex).contains("null"))) {
+                                out.print("Please enter your name: ");
+                                customerName = in.readLine();
+                                appointments.put(customerName, timeSlots.get(slotChoiceIndex));
+                                timeSlots.remove(slotChoiceIndex);
+                            } else {
+                                out.println("Invalid Entry, System shutting down");
+                            }
                         }
                     }
                 }
