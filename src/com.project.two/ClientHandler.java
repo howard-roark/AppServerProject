@@ -49,10 +49,10 @@ public class ClientHandler implements Runnable {
             while (true) {
                 toSend = reader.readLine();
                 if(toSend.length() != 0) {
+                    outClient.println(toSend);
                     if(toSend.equalsIgnoreCase("quit")) {
                         break;
                     }
-                    outClient.println(toSend);
                 }
             }
             
