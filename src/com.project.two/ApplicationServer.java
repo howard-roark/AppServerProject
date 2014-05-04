@@ -10,12 +10,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author Matthew McGuire
  * @version 1.0 27 April 2014
  */
 public class ApplicationServer {
+
     private static final int PORT = 2222;
     protected static List<String> timeSlots = new ArrayList<>();
     protected static Map<String, String> bookedAppointments = new HashMap<>();
@@ -77,13 +80,14 @@ public class ApplicationServer {
 }
 
 class ClientThread extends Thread {
+
     private Socket clientSocket = null;
-    private String request;
     private List<String> timeSlots;
     private Map<String, String> appointments = null;
     private BufferedReader in = null;
     private PrintWriter out = null;
     private String clientName;
+    private String fromClient;
 
     public ClientThread(Socket appServerConnection, List<String> timeSlots, Map<String, String> appointments) {
         try {
@@ -97,67 +101,110 @@ class ClientThread extends Thread {
         }
     }
 
-    @Override
-    public void run() {
-        String slotChoice;
-        String customerName;
+    private void closeConnection() {
+        out.close();
         try {
-            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            out = new PrintWriter(clientSocket.getOutputStream(), true);
-            String choice = in.readLine();
-            if (choice.equals("0")) {
-                System.out.println("Finding available time slots...");
-                String timeSlot = null;
-                synchronized (this) {
-                    int i = 0;
-                    for (String slot : timeSlots) {
-                        timeSlot = timeSlot + "\n" + i + ": " + slot;
-                        i++;
-                    }
+            in.close();
+            clientSocket.close();
+        } catch (IOException ex) {
+            Logger.getLogger(ClientThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+
+    private void showTimeSlots() {
+        while (true) {
+            System.out.println("Finding available time slots...");
+            String timeSlot = "";
+            synchronized (this) {
+                int i = 0;
+                for (String slot : timeSlots) {
+                    timeSlot = timeSlot + "\n" + i + ": " + slot;
+                    i++;
                 }
-                out.println(timeSlot);
-                out.println("Please choose the time slot that works best for you: ");
-                int slotChoiceIndex = -1;
-                while (true) {
-                    while ((slotChoice = in.readLine()) != null) {
-                        synchronized (this) {
-                            slotChoiceIndex = Integer.parseInt(slotChoice);
-                            System.out.println("Client chose: " + slotChoice);
-
-                            if ((timeSlots.get(slotChoiceIndex) != null) && (!timeSlots.get(slotChoiceIndex).contains("null"))) {
-                                out.print("Please enter your name: ");
-                                customerName = in.readLine();
-                                appointments.put(customerName, timeSlots.get(slotChoiceIndex));
-                                timeSlots.remove(slotChoiceIndex);
-                            } else {
-                                out.println("Invalid Entry, System shutting down");
-                            }
-                        }
-                    }
-                }
-
-            } else if (choice.equals("1")) {
-                System.out.println("Looking up current appointments...");
-                out.print("Please enter your name: ");
-
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
-        } finally {
+            out.println(timeSlot);
+            out.println("Please choose the time slot that works best for you: ");
             try {
-                this.clientSocket.close();
-                this.in.close();
-                this.out.close();
-            } catch (IOException ioe) {
-                System.err.println("Problem closing resources");
-                ioe.printStackTrace();
-                System.exit(1);
-            } catch (Exception e) {
-                System.err.println("Unknown error closing resources");
-                e.printStackTrace();
-                System.exit(1);
+                int slotChoiceIndex;
+                fromClient = in.readLine();
+
+                synchronized (this) {
+                    if (isInteger(fromClient)) {
+                        slotChoiceIndex = Integer.parseInt(fromClient);
+                        System.out.println("Client chose: " + fromClient);
+
+                        if ((timeSlots.get(slotChoiceIndex) != null) && (!timeSlots.get(slotChoiceIndex).contains("null"))) {
+                            appointments.put(clientName, timeSlots.get(slotChoiceIndex));
+                            timeSlots.remove(slotChoiceIndex);
+                            break;
+                        }
+                    } else {
+                        out.println("Invalid Entry!");
+                    }
+                }
+
+            } catch (IOException ex) {
+                Logger.getLogger(ClientThread.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
+
+    public void confirmTimeSlot() {
+        System.out.println("Looking up current appointments...");
+    }
+
+    public static boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void run() {
+
+        try {
+            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            out = new PrintWriter(clientSocket.getOutputStream(), true);
+        } catch (IOException ex) {
+            Logger.getLogger(ClientThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        out.println("Welcome to Dr. Dog's Veterinary Clinic's State of the Art Scheduling App!");
+        out.println("To quit at any time type \"quit\".");
+        out.println("Please enter your name.");
+
+        try {
+
+            fromClient = in.readLine();
+            if (fromClient.equalsIgnoreCase("quit")) {
+                closeConnection();
+            } else {
+                clientName = fromClient;
+            }
+
+            while (true) {
+                out.println("\tPlease choose from the following options:");
+                out.println("\t\t0: See Available Time Slots\n\t\t1: Confirm your chosen time slot");
+                fromClient = in.readLine();
+                if (fromClient.equalsIgnoreCase("quit")) {
+                    break;
+                } else if (fromClient.equals("0")) {
+                    showTimeSlots();
+                } else if (fromClient.equals("1")) {
+                    confirmTimeSlot();
+                }
+            }
+
+        } catch (IOException ex) {
+            Logger.getLogger(ClientThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        closeConnection();
+
+    }
+
 }
